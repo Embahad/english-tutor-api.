@@ -2,109 +2,176 @@
 <html>
 <head>
   <title>AI English Tutor</title>
+
   <style>
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: white;
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-  .container {
-    width: 100%;
-    max-width: 600px;
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
 
-  h2 {
-    text-align: center;
-    margin-bottom: 15px;
-    color: #38bdf8;
-  }
+    h2 {
+      text-align: center;
+      margin-bottom: 15px;
+      color: #38bdf8;
+    }
 
-  #chat {
-    border-radius: 12px;
-    background: rgba(0,0,0,0.3);
-    height: 400px;
-    overflow-y: auto;
-    padding: 10px;
-    margin-bottom: 10px;
-  }
+    #chat {
+      height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
+    }
 
-  .msg {
-    margin: 8px 0;
-    padding: 8px 12px;
-    border-radius: 10px;
-    max-width: 90%;
-    word-wrap: break-word;
-  }
+    .msg {
+      padding: 10px 12px;
+      border-radius: 12px;
+      max-width: 85%;
+      word-wrap: break-word;
+    }
 
-  .user {
-    background: #2563eb;
-    align-self: flex-end;
-    margin-left: auto;
-  }
+    .user {
+      background: #2563eb;
+      align-self: flex-end;
+    }
 
-  .ai {
-    background: #16a34a;
-    margin-right: auto;
-  }
+    .ai {
+      background: #16a34a;
+      align-self: flex-start;
+    }
 
-  .input-area {
-    display: flex;
-    gap: 10px;
-  }
+    .input-area {
+      display: flex;
+      gap: 10px;
+    }
 
-  input {
-    flex: 1;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    outline: none;
-  }
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+    }
 
-  button {
-    padding: 12px 15px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-  }
+    button {
+      padding: 12px 15px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
 
-  .send {
-    background: #3b82f6;
-    color: white;
-  }
+    button:hover {
+      transform: scale(1.05);
+    }
 
-  .mic {
-    background: #ef4444;
-    color: white;
-  }
+    .send {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .mic {
+      background: #ef4444;
+      color: white;
+    }
   </style>
 </head>
 
 <body>
 
-<h2>AI English Tutor</h2>
+<div class="container">
 
-<div id="chat"></div>
+  <h2>AI English Tutor 🎓</h2>
 
-<input id="input" placeholder="Type or speak..." />
-<button onclick="send()">Send</button>
-<button onclick="startVoice()">🎤 Speak</button>
+  <div id="chat"></div>
+
+  <div class="input-area">
+    <input id="input" placeholder="Type or speak..." />
+    <button class="send" onclick="send()">Send</button>
+    <button class="mic" onclick="startVoice()">🎤</button>
+  </div>
+
+</div>
 
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 
+// Speak AI response
+function speak(text) {
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  speechSynthesis.speak(u);
+}
+
+// Add message to chat
+function addMsg(text, type) {
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// Send message (FAKE AI for now)
+async function send() {
+  const text = input.value;
+  if (!text) return;
+
+  addMsg("You: " + text, "user");
+  input.value = "";
+
+  // temporary response (we will connect Groq later)
+  const reply = "Correct: I went to school yesterday.\nExplanation: Use past tense 'went'.";
+
+  addMsg("AI: " + reply, "ai");
+  speak(reply);
+}
+
+// Voice input
+function startVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SR) {
+    alert("Speech recognition not supported");
+    return;
+  }
+
+  const rec = new SR();
+  rec.lang = "en-US";
+
+  rec.onresult = (e) => {
+    input.value = e.results[0][0].transcript;
+  };
+
+  rec.start();
+}
+</script>
+
+</body>
+</html>
 // Text to speech
 function speak(text) {
   const u = new SpeechSynthesisUtterance(text);
