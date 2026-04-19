@@ -27,25 +27,25 @@
 
     h2 {
       text-align: center;
-      margin-bottom: 15px;
       color: #38bdf8;
+      margin-bottom: 15px;
     }
 
     #chat {
       height: 400px;
       overflow-y: auto;
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
       padding: 10px;
-      margin-bottom: 10px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      background: rgba(0,0,0,0.25);
-      border-radius: 12px;
+      margin-bottom: 10px;
     }
 
     .msg {
-      padding: 10px 12px;
-      border-radius: 12px;
+      padding: 10px;
+      border-radius: 10px;
       max-width: 85%;
       word-wrap: break-word;
     }
@@ -71,7 +71,6 @@
       border-radius: 10px;
       border: none;
       outline: none;
-      font-size: 14px;
     }
 
     button {
@@ -126,7 +125,7 @@ function speak(text) {
   speechSynthesis.speak(u);
 }
 
-// Add message to chat
+// Add message
 function addMsg(text, type) {
   const div = document.createElement("div");
   div.className = "msg " + type;
@@ -135,16 +134,15 @@ function addMsg(text, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// Send message (FAKE AI for now)
-async function send() {
+// Send message (fake AI for now)
+function send() {
   const text = input.value;
   if (!text) return;
 
   addMsg("You: " + text, "user");
   input.value = "";
 
-  // temporary response (we will connect Groq later)
-  const reply = "Correct: I went to school yesterday.\nExplanation: Use past tense 'went'.";
+  const reply = "Correct: I went to school yesterday.\nUse past tense 'went'.";
 
   addMsg("AI: " + reply, "ai");
   speak(reply);
@@ -158,55 +156,6 @@ function startVoice() {
     alert("Speech recognition not supported");
     return;
   }
-
-  const rec = new SR();
-  rec.lang = "en-US";
-
-  rec.onresult = (e) => {
-    input.value = e.results[0][0].transcript;
-  };
-
-  rec.start();
-}
-</script>
-
-</body>
-</html>
-// Text to speech
-function speak(text) {
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  speechSynthesis.speak(u);
-}
-
-// Add message
-function addMsg(text, type) {
-  const div = document.createElement("div");
-  div.className = "msg " + type;
-  div.innerText = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
-
-// Fake AI (we connect backend later)
-async function send() {
-  const text = input.value;
-  if (!text) return;
-
-  addMsg("You: " + text, "user");
-  input.value = "";
-
-  // temporary response (we connect Groq later)
-  const reply = "Correct: I went to school yesterday.\nUse past tense 'went'.";
-
-  addMsg("AI: " + reply, "ai");
-  speak(reply);
-}
-
-// Voice input
-function startVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return alert("Not supported");
 
   const rec = new SR();
   rec.lang = "en-US";
