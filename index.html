@@ -134,18 +134,32 @@ function addMsg(text, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// Send message (fake AI for now)
-function send() {
+// REAL AI CONNECTION (YOUR BACKEND)
+async function send() {
   const text = input.value;
   if (!text) return;
 
   addMsg("You: " + text, "user");
   input.value = "";
 
-  const reply = "Correct: I went to school yesterday.\nUse past tense 'went'.";
+  try {
+    const res = await fetch("https://english-tutor-backend-1.onrender.com/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ text })
+    });
 
-  addMsg("AI: " + reply, "ai");
-  speak(reply);
+    const data = await res.json();
+    const reply = data.reply;
+
+    addMsg("AI: " + reply, "ai");
+    speak(reply);
+
+  } catch (err) {
+    addMsg("AI: Error connecting to server", "ai");
+  }
 }
 
 // Voice input
