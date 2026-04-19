@@ -3,133 +3,93 @@
 <head>
   <title>AI English Tutor</title>
 
-  <!-- ✅ MOBILE FIX -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
+      font-family: 'Segoe UI', Arial;
       background: linear-gradient(135deg, #0f172a, #1e293b);
       color: white;
       margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
     }
 
     .container {
       width: 95%;
       max-width: 600px;
-      margin: auto;
       background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(10px);
       border-radius: 20px;
       padding: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    h2 {
-      text-align: center;
-      color: #38bdf8;
-      margin-bottom: 10px;
-      font-size: 20px;
     }
 
     #chat {
-      height: 50vh;
+      height: 55vh;
       overflow-y: auto;
-      background: rgba(0,0,0,0.25);
-      border-radius: 12px;
+      background: rgba(0,0,0,0.3);
       padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      border-radius: 10px;
       margin-bottom: 10px;
     }
 
     .msg {
       padding: 10px;
+      margin: 5px 0;
       border-radius: 10px;
-      max-width: 85%;
-      word-wrap: break-word;
-      font-size: 14px;
+      max-width: 80%;
     }
 
-    .user {
-      background: #2563eb;
-      align-self: flex-end;
-    }
-
-    .ai {
-      background: #16a34a;
-      align-self: flex-start;
-    }
-
-    .input-area {
-      display: flex;
-      gap: 8px;
-    }
+    .user { background: #2563eb; margin-left: auto; }
+    .ai { background: #16a34a; }
 
     input {
-      flex: 1;
-      padding: 12px;
+      width: 100%;
+      padding: 10px;
       border-radius: 10px;
       border: none;
-      outline: none;
-      font-size: 16px;
+      margin-bottom: 8px;
     }
 
     button {
-      padding: 12px;
-      border: none;
+      padding: 10px;
       border-radius: 10px;
+      border: none;
+      margin-right: 5px;
       cursor: pointer;
-      font-weight: bold;
-      transition: 0.2s;
-      font-size: 14px;
     }
 
-    button:hover {
-      transform: scale(1.05);
-    }
-
-    .send {
-      background: #3b82f6;
-      color: white;
-    }
-
-    .mic {
-      background: #ef4444;
-      color: white;
-    }
+    .mic { background: red; color: white; }
+    .send { background: blue; color: white; }
   </style>
 </head>
 
 <body>
 
 <div class="container">
-
-  <h2>AI English Tutor 🎓</h2>
+  <h3>AI English Tutor 🎤</h3>
 
   <div id="chat"></div>
 
-  <div class="input-area">
-    <input id="input" placeholder="Type or speak..." />
-    <button class="send" onclick="send()">Send</button>
-    <button class="mic" onclick="startVoice()">🎤</button>
-  </div>
+  <input id="input" placeholder="Speak or type..." />
 
+  <button class="send" onclick="send()">Send</button>
+  <button class="mic" onclick="startConversation()">🎤 Talk</button>
 </div>
 
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 
-// 🔊 Speak AI response
+let recognition;
+let isTalking = false;
+
+// 🔊 Speak
 function speak(text) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US";
+  u.rate = 1;
   speechSynthesis.speak(u);
 }
 
@@ -142,7 +102,21 @@ function addMsg(text, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// 🤖 REAL AI CONNECTION
+// 🤖 AI request
+async function getAI(text) {
+  const res = await fetch("https://english-tutor-backend-1.onrender.com/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ text })
+  });
+
+  const data = await res.json();
+  return data.reply;
+}
+
+// 📩 Manual send
 async function send() {
   const text = input.value;
   if (!text) return;
@@ -150,43 +124,37 @@ async function send() {
   addMsg("You: " + text, "user");
   input.value = "";
 
-  try {
-    const res = await fetch("https://english-tutor-backend-1.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text })
-    });
-
-    const data = await res.json();
-    const reply = data.reply;
-
-    addMsg("AI: " + reply, "ai");
-    speak(reply);
-
-  } catch (err) {
-    addMsg("AI: Error connecting to server", "ai");
-  }
+  const reply = await getAI(text);
+  addMsg("AI: " + reply, "ai");
+  speak(reply);
 }
 
-// 🎤 Voice input
-function startVoice() {
+// 🎤 FULL CONVERSATION MODE
+function startConversation() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
-    alert("Speech recognition not supported");
+    alert("Speech not supported");
     return;
   }
 
-  const rec = new SR();
-  rec.lang = "en-US";
+  recognition = new SR();
+  recognition.lang = "en-US";
+  recognition.continuous = true;
 
-  rec.onresult = (e) => {
-    input.value = e.results[0][0].transcript;
+  isTalking = true;
+
+  recognition.onresult = async (e) => {
+    const text = e.results[e.results.length - 1][0].transcript;
+
+    addMsg("You: " + text, "user");
+
+    const reply = await getAI(text);
+    addMsg("AI: " + reply, "ai");
+    speak(reply);
   };
 
-  rec.start();
+  recognition.start();
 }
 </script>
 
