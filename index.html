@@ -1,99 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI English Tutor</title>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <title>Giulia 🎤</title>
   <style>
     body {
-      font-family: 'Segoe UI', Arial;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
+      font-family: Arial;
+      background: #0f172a;
       color: white;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      text-align: center;
+      padding: 20px;
     }
-
-    .container {
-      width: 95%;
-      max-width: 600px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 20px;
-      padding: 15px;
-    }
-
     #chat {
-      height: 55vh;
+      max-width: 600px;
+      margin: auto;
+      height: 70vh;
       overflow-y: auto;
-      background: rgba(0,0,0,0.3);
+      border: 1px solid #333;
       padding: 10px;
       border-radius: 10px;
-      margin-bottom: 10px;
     }
-
-    .msg {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 10px;
-      max-width: 80%;
-    }
-
-    .user { background: #2563eb; margin-left: auto; }
-    .ai { background: #16a34a; }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      margin-bottom: 8px;
-    }
-
-    button {
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      margin-right: 5px;
-      cursor: pointer;
-    }
-
-    .mic { background: red; color: white; }
-    .send { background: blue; color: white; }
+    .msg { margin: 10px; }
+    .user { color: #38bdf8; }
+    .ai { color: #4ade80; }
+    #status { margin-top: 10px; opacity: 0.7; }
   </style>
 </head>
 
 <body>
 
-<div class="container">
-  <h3>AI English Tutor 🎤</h3>
+<h2>Giulia 🎤 (Talk freely)</h2>
 
-  <div id="chat"></div>
-
-  <input id="input" placeholder="Speak or type..." />
-
-  <button class="send" onclick="send()">Send</button>
-  <button class="mic" onclick="startConversation()">🎤 Talk</button>
-</div>
+<div id="chat"></div>
+<div id="status">🟡 Starting...</div>
 
 <script>
 const chat = document.getElementById("chat");
-const input = document.getElementById("input");
+const statusText = document.getElementById("status");
 
-let recognition;
-let isTalking = false;
+let recognizing = false;
 
-// 🔊 Speak
-function speak(text) {
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  u.rate = 1;
-  speechSynthesis.speak(u);
-}
-
-// 💬 Add message
+// add message
 function addMsg(text, type) {
   const div = document.createElement("div");
   div.className = "msg " + type;
@@ -102,61 +48,67 @@ function addMsg(text, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// 🤖 AI request
-async function getAI(text) {
-  const res = await fetch("https://english-tutor-backend-1.onrender.com/chat", {
+// voice output
+function speak(text) {
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel(); // interrupt
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.02;
+  utter.pitch = 1.05;
+
+  speechSynthesis.speak(utter);
+}
+
+// send to backend
+async function sendMessage(text, confidence) {
+  addMsg("You: " + text, "user");
+
+  const res = await fetch("https://your-backend-url/chat", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ text })
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text, confidence })
   });
 
   const data = await res.json();
-  return data.reply;
+
+  addMsg("Giulia: " + data.reply, "ai");
+  speak(data.reply);
 }
 
-// 📩 Manual send
-async function send() {
-  const text = input.value;
-  if (!text) return;
-
-  addMsg("You: " + text, "user");
-  input.value = "";
-
-  const reply = await getAI(text);
-  addMsg("AI: " + reply, "ai");
-  speak(reply);
-}
-
-// 🎤 FULL CONVERSATION MODE
-function startConversation() {
+// continuous listening
+function startListening() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
-    alert("Speech not supported");
+    alert("Speech Recognition not supported");
     return;
   }
 
-  recognition = new SR();
-  recognition.lang = "en-US";
-  recognition.continuous = true;
+  const rec = new SR();
 
-  isTalking = true;
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.lang = "en-US";
 
-  recognition.onresult = async (e) => {
-    const text = e.results[e.results.length - 1][0].transcript;
-
-    addMsg("You: " + text, "user");
-
-    const reply = await getAI(text);
-    addMsg("AI: " + reply, "ai");
-    speak(reply);
+  rec.onstart = () => {
+    recognizing = true;
+    statusText.innerText = "🎤 Listening...";
+    
+    // interrupt AI speaking when user starts talking
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
   };
 
-  recognition.start();
-}
-</script>
+  rec.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    const confidence = e.results[0][0].confidence;
 
-</body>
-</html>
+    sendMessage(text, confidence);
+  };
+
+  rec.onend = () => {
+    recognizing = false;
+    statusText.innerText = "🟡 Waiting...
